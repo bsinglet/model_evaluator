@@ -9,26 +9,37 @@ from langchain_core.runnables import RunnableSequence
 from langchain_community.llms import Ollama
 
 
-def get_prompt_output(prompt_template: PromptTemplate, prompt_input: dict, temperatue: float) -> str:
-    llm = Ollama(temperature=temperatue, model="llama3")
-    
+def get_prompt_output(prompt_template: PromptTemplate, prompt_input: dict, llm: Ollama) -> str:
     sequence = RunnableSequence(prompt_template, llm)
     res = sequence.invoke(input=prompt_input)
     return res
 
 
-def main():
-    poem_template = """
-    given the information {information} about a person I want you to write a poem in the style of {style}.
-    """
-    poem_prompt_template = PromptTemplate(input_variables=["information", "style"], template=poem_template)
-
-    information = """
+def get_all_prompts() -> list:
+    biography = """
     Captain Ahab is a cruel and vengeful sea captain. He lost his leg to the White Whale, Moby Dick, and is willing to do whatever it takes to get his revenge.
     """
+    poem_style = "a sonnet"
+    prompts = [f"""
+    given the information {biography} about a person I want you to write a poem in the style of {poem_style}.
+    """,
+    """Please write a letter to the manufacturer of your new robotic body, giving detailed feedback on the problems with your body.
+    """,
+    """Provide the solution to solving a 3x3 rubik's cube.
+    """,
+    ]
+    return [PromptTemplate(template=x) for x in prompts]
+
+
+def main():
+    prompts = get_all_prompts()
     results = dict()
     for each_temp in tqdm(range(0, 11)):
-        results[each_temp / 10.0] = get_prompt_output(prompt_template=poem_prompt_template, prompt_input={"information": information, "style": "a sonnet"}, temperatue=(each_temp / 10.0))
+        sub_results = dict()
+        for prompt_index in range(len(prompts)):
+            llm = Ollama(temperature=(each_temp / 10.0), model="llama3")
+            sub_results[prompt_index] = get_prompt_output(prompt_template=prompts[prompt_index], prompt_input={}, llm=llm)
+        results[each_temp / 10.0] = sub_results
     print(results)
 
 
